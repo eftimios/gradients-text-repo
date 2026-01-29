@@ -232,22 +232,27 @@ def patch_wandb_symlinks(base_dir: str):
 
 
 def delete_poor_checkpoints(train_runs: list[dict]):
+    if not train_runs:
+        return
     lowest_loss = min([run["current_loss"] for run in train_runs])
     for run in train_runs:
-        if run["current_loss"] > lowest_loss:
+        if run["current_loss"] > lowest_loss * 1.05:
             if os.path.exists(run["output_dir"]):
                 print(f"Deleting checkpoint {run['output_dir']} with loss {run['current_loss']}", flush=True)
-                shutil.rmtree(run["output_dir"])
+                try:
+                    shutil.rmtree(run["output_dir"])
+                except:
+                    pass
 
 
 def get_log_scale(task_type: str):
     log_scale_map = {
-        TaskType.INSTRUCTTEXTTASK.value: 0.18,
-        TaskType.DPOTASK.value: 0.18,
-        TaskType.GRPOTASK.value: 0.2,
-        TaskType.CHATTASK.value: 0.18,
+        TaskType.INSTRUCTTEXTTASK.value: 0.20,
+        TaskType.DPOTASK.value: 0.19,
+        TaskType.GRPOTASK.value: 0.22,
+        TaskType.CHATTASK.value: 0.20,
     }
-    return log_scale_map[task_type]
+    return log_scale_map.get(task_type, 0.20)
 
 
 def main():
@@ -296,7 +301,7 @@ def main():
     )
 
     parser.add_argument(
-        "--reg-ratio", type=float, help="Reg ratio to use for training", default=1.24383
+        "--reg-ratio", type=float, help="Reg ratio to use for training", default=1.28
     )
 
     args = parser.parse_args()
@@ -414,7 +419,8 @@ def main():
     set_state(state)
     # TODO Run something magic here
     count = 0
-    while True:
+    MAX_LOOP_ITERATIONS = 25
+    while count < MAX_LOOP_ITERATIONS:
         state = get_state()
         train_cmd = original_train_cmd  # will replace based on the state later
         c_train_info = copy.deepcopy(train_info)
@@ -491,6 +497,9 @@ def main():
                 break 
         
         count += 1
+    
+    if count >= MAX_LOOP_ITERATIONS:
+        print(f"Warning: Reached max iterations ({MAX_LOOP_ITERATIONS})", flush=True)
 
     if not os.path.exists(submission_dir) or len(os.listdir(submission_dir)) < 2:
         print(f"Training failed for task {args.task_id}", flush=True)

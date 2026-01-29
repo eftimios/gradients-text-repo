@@ -37,7 +37,7 @@ def _suggest_learning_rates(
 def suggest_learning_rates(
     best_lr: float,
     n: int,
-    log_range: float = 0.2
+    log_range: float = 0.22
 ) -> list[float]:
     lrs = _suggest_learning_rates(best_lr, n, log_range)
     if n % 2 == 1:
@@ -51,7 +51,7 @@ def suggest_learning_rates(
 def extend_learning_rates(
     lr: float,
     n: int,
-    log_range: float = 0.2
+    log_range: float = 0.22
 ) -> list[float]:
     lrs = _suggest_learning_rates(lr, n, log_range)
     # loop over lrs to find the item that is the closest to lr (should be the same) and replace it with lr and move that item to the left (index = 0)

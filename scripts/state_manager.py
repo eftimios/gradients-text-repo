@@ -16,29 +16,34 @@ def _get_redis_client() -> redis.Redis:
         port=port,
         password=password,
         db=db,
-        decode_responses=True
+        decode_responses=True,
+        socket_timeout=5,
+        socket_connect_timeout=5
     )
 
 
 def get_state() -> dict:
     """return the json.loads(value of STATE_KEY in redis)"""
-    client = _get_redis_client()
-    value = client.get(STATE_KEY)
-    
-    if value is None:
-        return {}
-    
     try:
+        client = _get_redis_client()
+        value = client.get(STATE_KEY)
+        
+        if value is None:
+            return {}
+        
         return json.loads(value)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, redis.ConnectionError, redis.TimeoutError, Exception):
         return {}
 
 
 def set_state(state: dict) -> None:
     """set the value of STATE_KEY in redis to the state"""
-    client = _get_redis_client()
-    json_value = json.dumps(state)
-    client.set(STATE_KEY, json_value)
+    try:
+        client = _get_redis_client()
+        json_value = json.dumps(state)
+        client.set(STATE_KEY, json_value)
+    except (redis.ConnectionError, redis.TimeoutError, Exception):
+        pass
 
 
 def test():
